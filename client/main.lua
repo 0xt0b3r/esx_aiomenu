@@ -1,701 +1,523 @@
-local Vehicle 					= GetVehiclePedIsIn(ped, false)
-local inVehicle 				= IsPedSittingInAnyVehicle(ped)
-local lastCar 					= nil
-local myIdentity 				= {}
-local lockStatus 				= 0
-local lockStatusOutside 		= 0
-local hasKey 					= false
-time 							= 0
-myIdentifiers 					= {}
-ESX								= nil
-
-
-
 Citizen.CreateThread(function()
-
 	while ESX == nil do
 		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 		Citizen.Wait(0)
 	end
-	
-	while true do
-		Wait(0)
 
-		if IsControlJustPressed(1, 10) and GetLastInputMethod( 0 ) then
-			SetNuiFocus(true, true)
-			SendNUIMessage({type = 'openGeneral'})
-			local ped = GetPlayerPed(-1)
-			if IsPedInAnyVehicle(ped, true) then 
-				SendNUIMessage({type = 'showVehicleButton'})
-			else 
-				SendNUIMessage({type = 'hideVehicleButton'})
-			end		
-		end
-		
-		if IsControlJustPressed(1, 322) then
-			SetNuiFocus(false, false)
-			SendNUIMessage({type = 'close'})
-		end
-		
-		if IsControlJustPressed(1, 178) then
-			doToggleEngine()
-		end
+	while ESX.GetPlayerData().job == nil do
+		Citizen.Wait(100)
+	end
+
+	while true do
+		ESX.PlayerData = ESX.GetPlayerData()
+		Citizen.Wait(1000)
 	end
 end)
 
 Citizen.CreateThread(function()
-    timer = 0
 	while true do
-		Wait(1000)
-		time = time - 1
+		Citizen.Wait(0)
+
+		local ped = GetPlayerPed(-1)
+
+		if not IsPedDeadOrDying(ped, 1) then
+			if IsControlJustPressed(1, 10) and GetLastInputMethod(2) then
+				OpenMobileAIOActionsMenu()
+			end
+		else
+			Citizen.Wait(500)
+		end
 	end
 end)
 
-RegisterNetEvent('esx_aiomenu:saveID')
-AddEventHandler('esx_aiomenu:saveID', function(data)
-	myIdentifiers = data
-end)
+function OpenMobileAIOActionsMenu()
 
-RegisterNUICallback('NUIFocusOff', function()
-	SetNuiFocus(false, false)
-	SendNUIMessage({type = 'closeAll'})
-end)
+	ESX.UI.Menu.CloseAll()
 
-RegisterNUICallback('NUIShowGeneral', function()
-  SetNuiFocus(true, true)
-  SendNUIMessage({type = 'openGeneral'})
-end)
+	ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'mobile_aio_actions', {
+		title    = _U('aiomenu'),
+		align    = 'bottom-right',
+		elements = {
+			{label = _U('interactions_menu'), value = 'interactions_menu'},
+			{label = _U('vehicle_menu'), value = 'vehicle_menu'},
+			{label = _U('esx_menu'), value = 'esx_menu'},
+			{label = _U('jobs_menu'), value = 'jobs_menu'}
+		}
+	}, function(data, menu)
+		if data.current.value == 'interactions_menu' then
+			ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'interactions_menu', {
+				title    = _U('aiomenu'),
+				align    = 'bottom-right',
+				elements = {
+					{label = _U('my_phone_number'), value = 'my_phone_number'},
+					{label = _U('give_phone_number'), value = 'give_phone_number'},
+					{label = _U('my_id'), value = 'my_id'},
+					{label = _U('show_id'), value = 'show_id'}
+				}
+			}, function(data, menu)
+				if data.current.value == 'my_phone_number' then
+						TriggerServerEvent('esx_aiomenu:givePhoneNumber', GetPlayerServerId(PlayerId()), GetPlayerServerId(PlayerId()))
+						ESX.UI.Menu.CloseAll()
+				elseif data.current.value == 'give_phone_number' then
+					local closestPlayer, closestDistance = ESX.Game.GetClosestPlayer()
 
-RegisterNUICallback('NUIShowInteractions', function()
-  SetNuiFocus(true, true)
-  SendNUIMessage({type = 'openInteractions'})
-end)
-
-RegisterNUICallback('togglephone', function(data)
-	TriggerServerEvent('esx_aiomenu:phone', myIdentifiers, data)
-end)
-
-RegisterNUICallback('toggleEngineOnOff', function()
-	doToggleEngine()
-end)
-
-function doToggleEngine()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 then
-		if GetPedInVehicleSeat(vehicle, 0) then
-			if IsVehicleEngineOn(GetVehiclePedIsIn(GetPlayerPed(-1), false)) then
-				SetVehicleEngineOn(vehicle, false, false, true)
+					if closestPlayer == -1 or closestDistance > 2.0 then
+						ESX.ShowNotification(_U('no_players'))
+					elseif closestPlayer ~= -1 and closestDistance <= 2.0 then
+						TriggerServerEvent('esx_aiomenu:givePhoneNumber', GetPlayerServerId(PlayerId()), GetPlayerServerId(closestPlayer))
+					end
+					ESX.UI.Menu.CloseAll()
+				elseif data.current.value == 'my_id' then
+					-- Look at your own id					
+				elseif data.current.value == 'show_id' then
+					-- Give the closest player your ID
+			 	end
+			end, function(data, menu)
+				menu.close()
+			end)
+		elseif data.current.value == 'vehicle_menu' then
+			local ped = GetPlayerPed(-1)
+			if IsPedInAnyVehicle(ped, true) then 
+				ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'vehicle_menu', {
+					title    = _U('aiomenu'),
+					align    = 'bottom-right',
+					elements = {
+						{label = _U('window_controls'), value = 'window_controls'},
+						{label = _U('door_controls'), value = 'door_controls'}
+					}
+				}, function(data, menu)
+					if data.current.value == 'window_controls' then
+						ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'window_controls', {
+							title    = _U('aiomenu'),
+							align    = 'bottom-right',
+							elements = {
+								{label = _U('windows_up'), value = 'windows_up'},
+								{label = _U('windows_down'), value = 'windows_down'},
+								{label = _U('individual_window_controls'), value = 'individual_window_controls'}
+							}
+						}, function(data, menu)
+							if data.current.value == 'windows_up' then
+								local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+								if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+									local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
+									local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
+									local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
+									local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
+									local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
+									local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
+									if frontLeftWindow ~= -1 or frontRightWindow ~= -1 or rearLeftWindow ~= -1 or rearRightWindow ~= -1 or frontMiddleWindow ~= -1 or rearMiddleWindow ~= -1 then
+										RollUpWindow(vehicle, 0)
+										RollUpWindow(vehicle, 1)
+										RollUpWindow(vehicle, 2)
+										RollUpWindow(vehicle, 3)
+										RollUpWindow(vehicle, 4)
+										RollUpWindow(vehicle, 5)
+									else
+										ESX.ShowNotification('This vehicle has no windows.')
+									end
+								else
+									ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+								end
+							elseif data.current.value == 'windows_down' then
+									local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+									if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+										local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
+										local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
+										local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
+										local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
+										local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
+										local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
+										if frontLeftWindow ~= -1 or frontRightWindow ~= -1 or rearLeftWindow ~= -1 or rearRightWindow ~= -1 or frontMiddleWindow ~= -1 or rearMiddleWindow ~= -1 then
+											RollDownWindow(vehicle, 0)
+											RollDownWindow(vehicle, 1)
+											RollDownWindow(vehicle, 2)
+											RollDownWindow(vehicle, 3)
+											RollDownWindow(vehicle, 4)
+											RollDownWindow(vehicle, 5)
+										else
+											ESX.ShowNotification('This vehicle has no windows.')
+										end
+									else
+										ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+									end
+							elseif data.current.value == 'individual_window_controls' then
+								ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'individual_window_controls', {
+									title    = _U('aiomenu'),
+									align    = 'bottom-right',
+									elements = {
+										{label = _U('lf_window_up'), value = 'lf_window_up'},
+										{label = _U('lf_window_down'), value = 'lf_window_down'},
+										{label = _U('rf_window_up'), value = 'rf_window_up'},
+										{label = _U('rf_window_down'), value = 'rf_window_down'},
+										{label = _U('lr_window_up'), value = 'lr_window_up'},
+										{label = _U('lr_window_down'), value = 'lr_window_down'},
+										{label = _U('rr_window_up'), value = 'rr_window_up'},
+										{label = _U('rr_window_down'), value = 'rr_window_down'},
+										{label = _U('mf_window_up'), value = 'mf_window_up'},
+										{label = _U('mf_window_down'), value = 'mf_window_down'},
+										{label = _U('mr_window_up'), value = 'mr_window_up'},
+										{label = _U('mr_window_down'), value = 'mr_window_down'}
+									}
+								}, function(data, menu)
+									if data.current.value == 'lf_window_up' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
+											if frontLeftWindow ~= -1 then
+												RollUpWindow(vehicle, 0)
+											else
+												ESX.ShowNotification('This vehicle has no front left window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'lf_window_down' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
+											if frontLeftWindow ~= -1 then
+												RollDownWindow(vehicle, 0)
+											else
+												ESX.ShowNotification('This vehicle has no front left window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'rf_window_up' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
+											if frontRightWindow ~= -1 then
+												RollUpWindow(vehicle, 1)
+											else
+												ESX.ShowNotification('This vehicle has no front right window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'rf_window_down' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
+											if frontRightWindow ~= -1 then
+												RollDownWindow(vehicle, 1)
+											else
+												ESX.ShowNotification('This vehicle has no front right window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'lr_window_up' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
+											if rearLeftWindow ~= -1 then
+												RollUpWindow(vehicle, 2)
+											else
+												ESX.ShowNotification('This vehicle has no rear left window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'lr_window_down' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
+											if rearLeftWindow ~= -1 then
+												RollDownWindow(vehicle, 2)
+											else
+												ESX.ShowNotification('This vehicle has no rear left window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'rr_window_up' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
+											if rearRightWindow ~= -1 then
+												RollUpWindow(vehicle, 3)
+											else
+												ESX.ShowNotification('This vehicle has no rear right window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'rr_window_down' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
+											if rearRightWindow ~= -1 then
+												RollDownWindow(vehicle, 3)
+											else
+												ESX.ShowNotification('This vehicle has no rear right window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'mf_window_up' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
+											if frontMiddleWindow ~= -1 then
+												RollUpWindow(vehicle, 4)
+											else
+												ESX.ShowNotification('This vehicle has no front middle window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'mf_window_down' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
+											if frontMiddleWindow ~= -1 then
+												RollDownWindow(vehicle, 4)
+											else
+												ESX.ShowNotification('This vehicle has no front middle window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'mr_window_up' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
+											if rearMiddleWindow ~= -1 then
+												RollUpWindow(vehicle, 5)
+											else
+												ESX.ShowNotification('This vehicle has no rear middle window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'mr_window_down' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
+											if rearMiddleWindow ~= -1 then
+												RollDownWindow(vehicle, 5)
+											else
+												ESX.ShowNotification('This vehicle has no rear middle window.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									end
+								end, function(data, menu)
+									menu.close()
+								end)
+							end
+						end, function(data, menu)
+							menu.close()
+						end)
+					elseif data.current.value == 'door_controls' then
+						ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'window_controls', {
+							title    = _U('aiomenu'),
+							align    = 'bottom-right',
+							elements = {
+								{label = _U('toggle_all_doors'), value = 'toggle_all_doors'},
+								{label = _U('individual_door_controls'), value = 'individual_door_controls'}
+							}
+						}, function(data, menu)
+							if data.current.value == 'toggle_all_doors' then
+								local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+								if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+									if GetVehicleDoorAngleRatio(vehicle, 0) > 0.0 then 
+										SetVehicleDoorShut(vehicle, 0, false)
+										SetVehicleDoorShut(vehicle, 1, false)
+										SetVehicleDoorShut(vehicle, 2, false)	
+										SetVehicleDoorShut(vehicle, 3, false)	
+										SetVehicleDoorShut(vehicle, 4, false)	
+										SetVehicleDoorShut(vehicle, 5, false)				
+									else
+										SetVehicleDoorOpen(vehicle, 0, false) 
+										SetVehicleDoorOpen(vehicle, 1, false)   
+										SetVehicleDoorOpen(vehicle, 2, false)   
+										SetVehicleDoorOpen(vehicle, 3, false)   
+										SetVehicleDoorOpen(vehicle, 4, false)   
+										SetVehicleDoorOpen(vehicle, 5, false)               
+									end
+								else
+									ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+								end
+							elseif data.current.value == 'individual_door_controls' then
+								ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'individual_door_controls', {
+									title    = _U('aiomenu'),
+									align    = 'bottom-right',
+									elements = {
+										{label = _U('toggle_hood'), value = 'toggle_hood'},
+										{label = _U('toggle_trunk'), value = 'toggle_trunk'},
+										{label = _U('lf_toggle_door'), value = 'lf_toggle_door'},
+										{label = _U('rf_toggle_door'), value = 'rf_toggle_door'},
+										{label = _U('lr_toggle_door'), value = 'lr_toggle_door'},
+										{label = _U('rr_toggle_door'), value = 'rr_toggle_door'}
+									}
+								}, function(data, menu)
+									if data.current.value == 'toggle_hood' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local bonnet = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'bonnet')
+											if bonnet ~= -1 then
+												if GetVehicleDoorAngleRatio(vehicle, 4) > 0.0 then 
+													SetVehicleDoorShut(vehicle, 4, false)            
+												else
+													SetVehicleDoorOpen(vehicle, 4, false)             
+												end
+											else
+												ESX.ShowNotification('This vehicle does not have a hood.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'toggle_trunk' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local boot = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'boot')
+											if boot ~= -1 then
+												if GetVehicleDoorAngleRatio(vehicle, 5) > 0.0 then 
+													SetVehicleDoorShut(vehicle, 5, false)            
+												else
+													SetVehicleDoorOpen(vehicle, 5, false)             
+												end
+											else
+												ESX.ShowNotification('This vehicle does not have a trunk.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'lf_toggle_door' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontLeftDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_dside_f')
+											if frontLeftDoor ~= -1 then
+												if GetVehicleDoorAngleRatio(vehicle, 0) > 0.0 then 
+													SetVehicleDoorShut(vehicle, 0, false)            
+												else
+													SetVehicleDoorOpen(vehicle, 0, false)             
+												end
+											else
+												ESX.ShowNotification('This vehicle does not have a front driver-side door.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'rf_toggle_door' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local frontRightDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_pside_f')
+											if frontRightDoor ~= -1 then
+												if GetVehicleDoorAngleRatio(vehicle, 1) > 0.0 then 
+													SetVehicleDoorShut(vehicle, 1, false)            
+												else
+													SetVehicleDoorOpen(vehicle, 1, false)             
+												end
+											else
+												ESX.ShowNotification('This vehicle does not have a front passenger-side door.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'lr_toggle_door' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearLeftDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_dside_r')
+											if rearLeftDoor ~= -1 then
+												if GetVehicleDoorAngleRatio(vehicle, 2) > 0.0 then 
+													SetVehicleDoorShut(vehicle, 2, false)            
+												else
+													SetVehicleDoorOpen(vehicle, 2, false)             
+												end
+											else
+												ESX.ShowNotification('This vehicle does not have a rear driver-side door.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									elseif data.current.value == 'rr_toggle_door' then
+										local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+										if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
+											local rearRightDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_pside_r')
+											if rearRightDoor ~= -1 then
+												if GetVehicleDoorAngleRatio(vehicle, 3) > 0.0 then 
+													SetVehicleDoorShut(vehicle, 3, false)            
+												else
+													SetVehicleDoorOpen(vehicle, 3, false)             
+												end
+											else
+												ESX.ShowNotification('This vehicle does not have a rear passenger-side door.')
+											end
+										else
+											ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+										end
+									end
+								end, function(data, menu)
+									menu.close()
+								end)
+							end
+						end, function(data, menu)
+							menu.close()
+						end)
+					end
+				end, function(data, menu)
+					menu.close()
+				end)
 			else
-				SetVehicleEngineOn(vehicle, true, false, true)
+				ESX.ShowNotification(_U('need_to_be_in_vehicle'))
 			end
-		else
-			ESX.ShowNotification('You must be the driver of a vehicle to use this.')
+		elseif data.current.value == 'esx_menu' then
+			ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'esx_menu', {
+				title    = _U('aiomenu'),
+				align    = 'bottom-right',
+				elements = {
+					{label = _U('invoices_button'), value = 'invoices_button'},
+					{label = _U('voice_range_button'), value = 'voice_range_button'},
+					{label = _U('animations_button'), value = 'animations_button'}
+				}
+			}, function(data, menu)
+				if data.current.value == 'invoices_button' then
+					exports['esx_billing']:ShowBillsMenu()
+				elseif data.current.value == 'voice_range_button' then
+					exports['esx_voice']:setVoice()
+				elseif data.current.value == 'animations_button' then
+					exports['esx_animations']:OpenAnimationsMenu()
+				end
+			end, function(data, menu)
+				menu.close()
+			end)
+		elseif data.current.value == 'jobs_menu' then
+			if ESX ~= nil then
+				if ESX.PlayerData ~= nil then
+					if ESX.PlayerData.job ~= nil then
+						if ESX.PlayerData.job.name ~= nil then
+							if ESX.PlayerData.job.name == 'ambulance' then
+								ESX.UI.Menu.CloseAll()
+								exports['esx_ambulancejob']:OpenMobileAmbulanceActionsMenu()
+							elseif ESX.PlayerData.job.name == 'police' then
+								ESX.UI.Menu.CloseAll()
+								exports['esx_policejob']:OpenPoliceActionsMenu()
+							elseif ESX.PlayerData.job.name == 'mechanic' then
+								ESX.UI.Menu.CloseAll()
+								exports['esx_mechanicjob']:OpenMobileMechanicActionsMenu()
+							elseif ESX.PlayerData.job.name == 'taxi' then
+								ESX.UI.Menu.CloseAll()
+								exports['esx_taxijob']:OpenMobileTaxiActionsMenu()
+							end
+						end
+					end
+				end
+			end
 		end
-	else
-		ESX.ShowNotification('You must be inside of a vehicle to use this.')
-    end
+	end, function(data, menu)
+		menu.close()
+	end)
 end
 
-RegisterNUICallback('toggleVehicleLocks', function()
-	doToggleVehicleLocks()
-end)
-
-function doToggleVehicleLocks()
-	exports['esx_locksystem']:doLockSystemToggleLocks()
-end
-
---================================================================================================
---==                                  ESX Actions GUI                                           ==
---================================================================================================
-RegisterNUICallback('NUIESXActions', function(data)
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openESX'})
-	SendNUIMessage({type = 'showInventoryButton'})
-	SendNUIMessage({type = 'showPhoneButton'})
-	SendNUIMessage({type = 'showBillingButton'})
-	SendNUIMessage({type = 'showAnimationsButton'})
-end)
-
-RegisterNUICallback('NUIopenInventory', function()
-	exports['es_extended']:openInventory()
-end)
-
-RegisterNUICallback('NUIopenPhone', function()
-	exports['esx_phone']:openESXPhone()
-end)
-
-RegisterNUICallback('NUIopenBilling', function()
-	exports['esx_billing']:openBilling()
-end)
-
-RegisterNUICallback('NUIsetVoice', function()
-	exports['esx_voice']:setVoice()
-end)
-
-RegisterNUICallback('NUIopenAnimations', function()
-	exports['esx_animations']:openAnimations()
-end)
-
-RegisterNUICallback('NUIJobActions', function(data)
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openJobs'})
-	local job = tostring(exports['esx_policejob']:getJob())
-	if job == 'police' then
-		SendNUIMessage({type = 'showPoliceButton'})
-		SendNUIMessage({type = 'hideAmbulanceButton'})
-		SendNUIMessage({type = 'hideTaxiButton'})
-		SendNUIMessage({type = 'hideMechanicButton'})
-		SendNUIMessage({type = 'hideFireButton'})
-	elseif job == 'ambulance' then
-		SendNUIMessage({type = 'showAmbulanceButton'})
-		SendNUIMessage({type = 'hidePoliceButton'})
-		SendNUIMessage({type = 'hideTaxiButton'})
-		SendNUIMessage({type = 'hideMechanicButton'})
-		SendNUIMessage({type = 'hideFireButton'})
-	elseif job == 'taxi' then
-		SendNUIMessage({type = 'showTaxiButton'})
-		SendNUIMessage({type = 'hidePoliceButton'})
-		SendNUIMessage({type = 'hideAmbulanceButton'})
-		SendNUIMessage({type = 'hideMechanicButton'})
-		SendNUIMessage({type = 'hideFireButton'})
-	elseif job == 'mecano' then
-		SendNUIMessage({type = 'showMechanicButton'})
-		SendNUIMessage({type = 'hidePoliceButton'})
-		SendNUIMessage({type = 'hideAmbulanceButton'})
-		SendNUIMessage({type = 'hideTaxiButton'})
-		SendNUIMessage({type = 'hideFireButton'})
-	elseif job == 'fire' then
-		SendNUIMessage({type = 'showFireButton'})  
-		SendNUIMessage({type = 'hideMechanicButton'})
-		SendNUIMessage({type = 'hidePoliceButton'})
-		SendNUIMessage({type = 'hideAmbulanceButton'})
-		SendNUIMessage({type = 'hideTaxiButton'})
+RegisterNetEvent('esx_aiomenu:givePhoneNumber')
+AddEventHandler('esx_aiomenu:givePhoneNumber', function(data)
+	if data.phoneNumber ~= 'nil' then	
+		ESX.ShowNotification(data.name .. '\'s number is ' .. data.phoneNumber .. '.')
 	else
-		SendNUIMessage({type = 'hidePoliceButton'})
-		SendNUIMessage({type = 'hideAmbulanceButton'})
-		SendNUIMessage({type = 'hideTaxiButton'})
-		SendNUIMessage({type = 'hideMechanicButton'})
-		SendNUIMessage({type = 'hideFireButton'})
-	end
-end)
-
-RegisterNUICallback('NUIopenAmbulance', function()
-	exports['esx_ambulancejob']:openAmbulance()
-end)
-
-RegisterNUICallback('NUIopenPolice', function()
-	exports['esx_policejob']:openPolice()
-end)
-
-RegisterNUICallback('NUIopenMechanic', function()
-	exports['esx_mecanojob']:openMechanic()
-end)
-
-RegisterNUICallback('NUIopenTaxi', function()
-	exports['esx_taxijob']:openTaxi()
-end)
-
-RegisterNUICallback('NUIopenFire', function()
-	exports['esx_firejob']:openFire()
-end)
-
-RegisterNUICallback('NUIShowVehicleControls', function()
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openVehicleControls'})
-end)
-
-RegisterNUICallback('NUIShowDoorControls', function()
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openDoorControls'})
-end)
-
-RegisterNUICallback('NUIShowIndividualDoorControls', function()
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openIndividualDoorControls'})
-end)
-
-RegisterNUICallback('toggleAllOpenables', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		if GetVehicleDoorAngleRatio(vehicle, 0) > 0.0 then 
-			SetVehicleDoorShut(vehicle, 0, false)
-			SetVehicleDoorShut(vehicle, 1, false)
-			SetVehicleDoorShut(vehicle, 2, false)	
-			SetVehicleDoorShut(vehicle, 3, false)	
-			SetVehicleDoorShut(vehicle, 4, false)	
-			SetVehicleDoorShut(vehicle, 5, false)				
-		else
-			SetVehicleDoorOpen(vehicle, 0, false) 
-			SetVehicleDoorOpen(vehicle, 1, false)   
-			SetVehicleDoorOpen(vehicle, 2, false)   
-			SetVehicleDoorOpen(vehicle, 3, false)   
-			SetVehicleDoorOpen(vehicle, 4, false)   
-			SetVehicleDoorOpen(vehicle, 5, false)               
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleFrontLeftDoor', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontLeftDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_dside_f')
-		if frontLeftDoor ~= -1 then
-			if GetVehicleDoorAngleRatio(vehicle, 0) > 0.0 then 
-				SetVehicleDoorShut(vehicle, 0, false)            
-			else
-				SetVehicleDoorOpen(vehicle, 0, false)             
-			end
-		else
-			ESX.ShowNotification('This vehicle does not have a front driver-side door.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleFrontRightDoor', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontRightDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_pside_f')
-		if frontRightDoor ~= -1 then
-			if GetVehicleDoorAngleRatio(vehicle, 1) > 0.0 then 
-				SetVehicleDoorShut(vehicle, 1, false)            
-			else
-				SetVehicleDoorOpen(vehicle, 1, false)             
-			end
-		else
-			ESX.ShowNotification('This vehicle does not have a front passenger-side door.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleRearLeftDoor', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearLeftDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_dside_r')
-		if rearLeftDoor ~= -1 then
-			if GetVehicleDoorAngleRatio(vehicle, 2) > 0.0 then 
-				SetVehicleDoorShut(vehicle, 2, false)            
-			else
-				SetVehicleDoorOpen(vehicle, 2, false)             
-			end
-		else
-			ESX.ShowNotification('This vehicle does not have a rear driver-side door.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleRearRightDoor', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearRightDoor = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'door_pside_r')
-		if rearRightDoor ~= -1 then
-			if GetVehicleDoorAngleRatio(vehicle, 3) > 0.0 then 
-				SetVehicleDoorShut(vehicle, 3, false)            
-			else
-				SetVehicleDoorOpen(vehicle, 3, false)             
-			end
-		else
-			ESX.ShowNotification('This vehicle does not have a rear passenger-side door.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleHood', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local bonnet = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'bonnet')
-		if bonnet ~= -1 then
-			if GetVehicleDoorAngleRatio(vehicle, 4) > 0.0 then 
-				SetVehicleDoorShut(vehicle, 4, false)            
-			else
-				SetVehicleDoorOpen(vehicle, 4, false)             
-			end
-		else
-			ESX.ShowNotification('This vehicle does not have a hood.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleTrunk', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local boot = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'boot')
-		if boot ~= -1 then
-			if GetVehicleDoorAngleRatio(vehicle, 5) > 0.0 then 
-				SetVehicleDoorShut(vehicle, 5, false)            
-			else
-				SetVehicleDoorOpen(vehicle, 5, false)             
-			end
-		else
-			ESX.ShowNotification('This vehicle does not have a trunk.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-    end
-end)
-
-RegisterNUICallback('toggleWindowsUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
-		local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
-		local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
-		local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
-		local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
-		local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
-		if frontLeftWindow ~= -1 or frontRightWindow ~= -1 or rearLeftWindow ~= -1 or rearRightWindow ~= -1 or frontMiddleWindow ~= -1 or rearMiddleWindow ~= -1 then
-			RollUpWindow(vehicle, 0)
-			RollUpWindow(vehicle, 1)
-			RollUpWindow(vehicle, 2)
-			RollUpWindow(vehicle, 3)
-			RollUpWindow(vehicle, 4)
-			RollUpWindow(vehicle, 5)
-		else
-			ESX.ShowNotification('This vehicle has no windows.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleWindowsDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
-		local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
-		local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
-		local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
-		local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
-		local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
-		if frontLeftWindow ~= -1 or frontRightWindow ~= -1 or rearLeftWindow ~= -1 or rearRightWindow ~= -1 or frontMiddleWindow ~= -1 or rearMiddleWindow ~= -1 then
-			RollDownWindow(vehicle, 0)
-			RollDownWindow(vehicle, 1)
-			RollDownWindow(vehicle, 2)
-			RollDownWindow(vehicle, 3)
-			RollDownWindow(vehicle, 4)
-			RollDownWindow(vehicle, 5)
-		else
-			ESX.ShowNotification('This vehicle has no windows.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleFrontLeftWindowUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
-		if frontLeftWindow ~= -1 then
-			RollUpWindow(vehicle, 0)
-		else
-			ESX.ShowNotification('This vehicle has no front left window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleFrontLeftWindowDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lf')
-		if frontLeftWindow ~= -1 then
-			RollDownWindow(vehicle, 0)
-		else
-			ESX.ShowNotification('This vehicle has no front left window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleFrontRightWindowUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
-		if frontRightWindow ~= -1 then
-			RollUpWindow(vehicle, 1)
-		else
-			ESX.ShowNotification('This vehicle has no front right window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleFrontRightWindowDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rf')
-		if frontRightWindow ~= -1 then
-			RollDownWindow(vehicle, 1)
-		else
-			ESX.ShowNotification('This vehicle has no front right window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleRearLeftWindowUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
-		if rearLeftWindow ~= -1 then
-			RollUpWindow(vehicle, 2)
-		else
-			ESX.ShowNotification('This vehicle has no rear left window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleRearLeftWindowDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearLeftWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lr')
-		if rearLeftWindow ~= -1 then
-			RollDownWindow(vehicle, 2)
-		else
-			ESX.ShowNotification('This vehicle has no rear left window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleRearRightWindowUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
-		if rearRightWindow ~= -1 then
-			RollUpWindow(vehicle, 3)
-		else
-			ESX.ShowNotification('This vehicle has no rear right window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleRearRightWindowDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearRightWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rr')
-		if rearRightWindow ~= -1 then
-			RollDownWindow(vehicle, 3)
-		else
-			ESX.ShowNotification('This vehicle has no rear right window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleFrontMiddleWindowUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
-		if frontMiddleWindow ~= -1 then
-			RollUpWindow(vehicle, 4)
-		else
-			ESX.ShowNotification('This vehicle has no front middle window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleFrontMiddleWindowDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local frontMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_lm')
-		if frontMiddleWindow ~= -1 then
-			RollDownWindow(vehicle, 4)
-		else
-			ESX.ShowNotification('This vehicle has no front middle window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleRearMiddleWindowUp', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
-		if rearMiddleWindow ~= -1 then
-			RollUpWindow(vehicle, 5)
-		else
-			ESX.ShowNotification('This vehicle has no rear middle window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('toggleRearMiddleWindowDown', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= nil and vehicle ~= 0 and GetPedInVehicleSeat(vehicle, 0) then
-		local rearMiddleWindow = GetEntityBoneIndexByName(GetVehiclePedIsIn(GetPlayerPed(-1), false), 'window_rm')
-		if rearMiddleWindow ~= -1 then
-			RollDownWindow(vehicle, 5)
-		else
-			ESX.ShowNotification('This vehicle has no rear middle window.')
-		end
-	else
-		ESX.ShowNotification('You must be the driver of a vehicle to use this.')
-	end
-end)
-
-RegisterNUICallback('NUIShowWindowControls', function()
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openWindowControls'})
-end)
-
-RegisterNUICallback('NUIShowIndividiualWindowControls', function()
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openIndividualWindowControls'})
-end)
-
-RegisterNUICallback('NUIShowCharacterControls', function()
-	SetNuiFocus(true, true)
-	SendNUIMessage({type = 'openCharacter'})
-end)
-
-RegisterNetEvent("esx_aiomenu:setChar")
-AddEventHandler("esx_aiomenu:setChar", function(identity)
-	myIdentity = identity
-end)
-
-RegisterNetEvent("esx_aiomenu:setIdentifier")
-AddEventHandler("esx_aiomenu:setIdentifier", function(data)
-	myIdentifiers = data
-end)
-
-RegisterNUICallback('NUInewCharacter', function(data)
-	if myIdentity.characterName == "No Character" then
-		exports['esx_identity']:openRegistry()
-	else
-		ESX.ShowNotification('You can only have one character.')
-	end
-end)
-
-RegisterNUICallback('NUIDelChar', function(data)
-	TriggerServerEvent('esx_aiomenu:deleteCharacter', myIdentifiers, data)
-	cb(data)
-end)
-
-RegisterNetEvent('esx_aiomenu:sendProximityMessageID')
-AddEventHandler('esx_aiomenu:sendProximityMessageID', function(id, message)
-	local myId = PlayerId()
-	local pid = GetPlayerFromServerId(id)
-	if pid == myId then
-		TriggerEvent('chatMessage', "[ID]" .. "", {0, 153, 204}, "^7 " .. message)
-	elseif GetDistanceBetweenCoords(GetEntityCoords(GetPlayerPed(myId)), GetEntityCoords(GetPlayerPed(pid)), true) < 19.999 then
-		TriggerEvent('chatMessage', "[ID]" .. "", {0, 153, 204}, "^7 " .. message)
-	end
-end)
-
-RegisterNetEvent('esx_aiomenu:sendProximityMessagePhone')
-AddEventHandler('esx_aiomenu:sendProximityMessagePhone', function(id, name, message)
-	local myId = PlayerId()
-	local pid = GetPlayerFromServerId(id)
-	if pid == myId then
-		TriggerEvent('chatMessage', "[Phone]^3(" .. name .. ")", {0, 153, 204}, "^7 " .. message)
-	elseif GetDistanceBetweenCoords(GetEntityCoords(GetPlayerPed(myId)), GetEntityCoords(GetPlayerPed(pid)), true) < 19.999 then
-		TriggerEvent('chatMessage', "[Phone]^3(" .. name .. ")", {0, 153, 204}, "^7 " .. message)
-	end
-end)
-
-RegisterNetEvent('esx_aiomenu:successfulDeleteIdentity')
-AddEventHandler('esx_aiomenu:successfulDeleteIdentity', function(data)
-	ESX.ShowNotification('Successfully deleted ' .. data.firstname .. ' ' .. data.lastname .. '.')
-end)
-
-RegisterNetEvent('esx_aiomenu:failedDeleteIdentity')
-AddEventHandler('esx_aiomenu:failedDeleteIdentity', function(data)
-	ESX.ShowNotification('Failed to delete ' .. data.firstname .. ' ' .. data.lastname .. '. Please contact a server admin.')
-end)
-
-RegisterNetEvent('esx_aiomenu:noIdentity')
-AddEventHandler('noIdentity', function()
-	ESX.ShowNotification('You do not have an identity.')
-end)
-
-RegisterNUICallback('NUItoggleID', function(data)
-	TriggerServerEvent('esx_aiomenu:setCharacter', myIdentifiers)
-	Wait(1000)
-	SetNuiFocus(true, true)
-	local charName 		= myIdentity.characterName
-	local charDOB  		= myIdentity.characterDOB
-	local charSex		= myIdentity.characterSex
-	local charHeight 	= myIdentity.characterHeight
-  
-	SendNUIMessage({
-		type = "toggleIDCard",
-		characterName 	= 'Name: ' .. charName,
-		characterDOB	= 'DOB: ' .. charDOB,
-		characterSex	= 'Sex: ' .. charSex,
-		characterHeight = 'Height: ' .. charHeight .. 'cm'	
-	}) 
-end)
-
-RegisterNUICallback('NUIshowID', function(data)
-	showID(data)
-end)
-
-function showID(data)
-	local player, distance = ESX.Game.GetClosestPlayer()
-
-	if distance ~= -1 and distance <= 3.0 then
-		TriggerServerEvent('esx_aiomenu:showID', GetPlayerServerId(PlayerId()), GetPlayerServerId(player))
-	else
-		ESX.ShowNotification('There is no one nearby.')
-	end
-end
-
-RegisterNetEvent('esx_aiomenu:showID')
-AddEventHandler('esx_aiomenu:showID', function(data)
-	local charName 		= data.characterName
-	local charDOB  		= data.characterDOB
-	local charSex 		= data.characterSex
-	local charHeight 	= data.characterHeight
-	SendNUIMessage({type = 'closeAll'})
-	Wait(500)
-	SetNuiFocus(true, true)
-	SendNUIMessage({
-		type   = "toggleIDCard",
-		characterName 	= 'Name: ' .. charName,
-		characterDOB	= 'DOB: ' .. charDOB,
-		characterSex	= 'Sex: ' .. charSex,
-		characterHeight = 'Height: ' .. charHeight .. 'cm'	
-	})
-end)
-
-RegisterNUICallback('NUIdeleteCharacter', function(data)
-	TriggerServerEvent('esx_aiomenu:setCharacter', myIdentifiers)
-	Wait(1000)
-	SetNuiFocus(true, true)
-	local charName = myIdentity.characterName
-  
-	SendNUIMessage({
-		type = "deleteCharacter",
-		characterName = charName,
-		backBtn  = "Back",
-		exitBtn  = "Exit"
-	}) 
+		ESX.ShowNotification(data.name .. '\'s phone isn\'t working properly.')
+	end	
 end)
