@@ -538,10 +538,10 @@ AddEventHandler('esx_aiomenu:showID', function(data)
 			title    = _U('aiomenu'),
 			align    = 'bottom-right',
 			elements = {
-				{label = tostring(data.name), value = 'nil'},
-				{label = tostring(data.dob), value = 'nil'},
-				{label = tostring(data.sex), value = 'nil'},
-				{label = tostring(data.height), value = 'nil'}
+				{label = 'Name: ' .. tostring(data.name), value = 'nil'},
+				{label = 'DOB: ' .. tostring(data.dob), value = 'nil'},
+				{label = 'Sex: ' .. tostring(data.sex), value = 'nil'},
+				{label = 'Height: ' .. tostring(data.height), value = 'nil'}
 			}
 		}, function(data, menu)
 
