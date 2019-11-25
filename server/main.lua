@@ -7,9 +7,9 @@ AddEventHandler('esx_aiomenu:givePhoneNumber', function(ID, targetID)
     local identifier = ESX.GetPlayerFromId(ID).identifier
     local _source 	 = ESX.GetPlayerFromId(targetID).source
     
-	MySQL.Async.fetchAll("SELECT * FROM `users` WHERE `identifier` = @identifier",
-	{
-		['@identifier'] = identifier
+    MySQL.Async.fetchAll("SELECT * FROM `users` WHERE `identifier` = @identifier",
+    {
+        ['@identifier'] = identifier
     }, function(result)
         if result[1] ~= nil then
             local data = {
@@ -35,9 +35,9 @@ AddEventHandler('esx_aiomenu:showID', function(ID, targetID)
     local _source 	 = ESX.GetPlayerFromId(targetID).source
     local sexVariable = 'Male'
     
-	MySQL.Async.fetchAll("SELECT * FROM `users` WHERE `identifier` = @identifier",
-	{
-		['@identifier'] = identifier
+    MySQL.Async.fetchAll("SELECT * FROM `users` WHERE `identifier` = @identifier",
+    {
+        ['@identifier'] = identifier
     }, function(result)
         if result[1] ~= nil then
             if result[1]['sex'] == 'f' then

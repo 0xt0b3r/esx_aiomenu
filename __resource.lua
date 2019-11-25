@@ -5,26 +5,26 @@ description 'ESX AIO Menu'
 version '3.0.0'
 
 server_scripts {
-	'@mysql-async/lib/MySQL.lua',
-	'@es_extended/locale.lua',
-	'locales/en.lua',
-	'config.lua',
-	'server/main.lua'
+    '@mysql-async/lib/MySQL.lua',
+    '@es_extended/locale.lua',
+    'locales/en.lua',
+    'config.lua',
+    'server/main.lua'
 }
 
 client_scripts {
-	'@es_extended/locale.lua',
-	'locales/en.lua',
-	'config.lua',
-	'client/main.lua'
+    '@es_extended/locale.lua',
+    'locales/en.lua',
+    'config.lua',
+    'client/main.lua'
 }
 
 dependencies {
-	'es_extended',
-	'esx_billing',
-	'esx_voice',
-	'esx_animations',
-	'esx_policejob',
-	'esx_mechanicjob',
-	'esx_taxijob'
+    'es_extended',
+    'esx_billing',
+    'esx_voice',
+    'esx_animations',
+    'esx_policejob',
+    'esx_mechanicjob',
+    'esx_taxijob'
 }
