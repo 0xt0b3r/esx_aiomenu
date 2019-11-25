@@ -72,8 +72,14 @@ function OpenMobileAIOActionsMenu()
 					TriggerServerEvent('esx_aiomenu:showID', GetPlayerServerId(PlayerId()), GetPlayerServerId(PlayerId()))
 					ESX.UI.Menu.CloseAll()					
 				elseif data.current.value == 'show_id' then
-					TriggerServerEvent('esx_aiomenu:showID', GetPlayerServerId(PlayerId()), GetPlayerServerId(closestPlayer))
-					ESX.UI.Menu.CloseAll()
+					local closestPlayer, closestDistance = ESX.Game.GetClosestPlayer()
+
+					if closestPlayer == -1 or closestDistance > 2.0 then
+						ESX.ShowNotification(_U('no_players'))
+					elseif closestPlayer ~= -1 and closestDistance <= 2.0 then
+						TriggerServerEvent('esx_aiomenu:showID', GetPlayerServerId(PlayerId()), GetPlayerServerId(closestPlayer))
+						ESX.UI.Menu.CloseAll()
+					end
 			 	end
 			end, function(data, menu)
 				menu.close()
