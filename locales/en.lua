@@ -1,6 +1,6 @@
 Locales['en'] = {
   -- Title
-  ['aiomenu'] = 'ESX AIO Menu',
+  ['aiomenu'] = 'ESX AIOMenu',
   -- Default Menu
   ['interactions_menu'] = 'Interactions',
   ['esx_menu'] = 'ESX',
