@@ -66,11 +66,14 @@ function OpenMobileAIOActionsMenu()
 					elseif closestPlayer ~= -1 and closestDistance <= 2.0 then
 						TriggerServerEvent('esx_aiomenu:givePhoneNumber', GetPlayerServerId(PlayerId()), GetPlayerServerId(closestPlayer))
 					end
+
 					ESX.UI.Menu.CloseAll()
 				elseif data.current.value == 'my_id' then
-					-- Look at your own id					
+					TriggerServerEvent('esx_aiomenu:showID', GetPlayerServerId(PlayerId()), GetPlayerServerId(PlayerId()))
+					ESX.UI.Menu.CloseAll()					
 				elseif data.current.value == 'show_id' then
-					-- Give the closest player your ID
+					TriggerServerEvent('esx_aiomenu:showID', GetPlayerServerId(PlayerId()), GetPlayerServerId(closestPlayer))
+					ESX.UI.Menu.CloseAll()
 			 	end
 			end, function(data, menu)
 				menu.close()
@@ -471,8 +474,8 @@ function OpenMobileAIOActionsMenu()
 				align    = 'bottom-right',
 				elements = {
 					{label = _U('invoices_button'), value = 'invoices_button'},
-					{label = _U('voice_range_button'), value = 'voice_range_button'},
-					{label = _U('animations_button'), value = 'animations_button'}
+					{label = _U('voice_range_button'), value = 'voice_range_button'}
+					-- {label = _U('animations_button'), value = 'animations_button'}
 				}
 			}, function(data, menu)
 				if data.current.value == 'invoices_button' then
@@ -519,5 +522,27 @@ AddEventHandler('esx_aiomenu:givePhoneNumber', function(data)
 		ESX.ShowNotification(data.name .. '\'s number is ' .. data.phoneNumber .. '.')
 	else
 		ESX.ShowNotification(data.name .. '\'s phone isn\'t working properly.')
+	end	
+end)
+
+RegisterNetEvent('esx_aiomenu:showID')
+AddEventHandler('esx_aiomenu:showID', function(data)
+	if data.name ~= 'Nil' then	
+		ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'show_id', {
+			title    = _U('aiomenu'),
+			align    = 'bottom-right',
+			elements = {
+				{label = tostring(data.name), value = 'nil'},
+				{label = tostring(data.dob), value = 'nil'},
+				{label = tostring(data.sex), value = 'nil'},
+				{label = tostring(data.height), value = 'nil'}
+			}
+		}, function(data, menu)
+
+		end, function(data, menu)
+			menu.close()
+		end)
+	else
+		ESX.ShowNotification('Error with Show ID. Please contact the developer of ESX AIOMenu.')
 	end	
 end)
