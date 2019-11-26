@@ -480,8 +480,8 @@ function OpenMobileAIOActionsMenu()
                 align    = 'bottom-right',
                 elements = {
                     {label = _U('invoices_button'), value = 'invoices_button'},
-                    {label = _U('voice_range_button'), value = 'voice_range_button'}
-                    -- {label = _U('animations_button'), value = 'animations_button'}
+                    {label = _U('voice_range_button'), value = 'voice_range_button'},
+                    {label = _U('animations_button'), value = 'animations_button'}
                 }
             }, function(data, menu)
                 if data.current.value == 'invoices_button' then
